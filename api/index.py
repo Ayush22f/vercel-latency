@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_PATH = Path(__file__).resolve().parent / "telemetry.json"
+DATA_PATH = Path(__file__).resolve().parent.parent / "telemetry.json"
 
 with open(DATA_PATH, "r", encoding="utf-8") as f:
     telemetry = json.load(f)

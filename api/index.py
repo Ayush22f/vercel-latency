@@ -1,3 +1,4 @@
+```python
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,26 +7,35 @@ from pathlib import Path
 import json
 import math
 
-app = FastAPI()
+# Create the FastAPI application
+app = FastAPI(
+    title="Telemetry Metrics API",
+    docs_url="/api/index/docs",
+    openapi_url="/api/index/openapi.json",
+)
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Load telemetry.json from the repository root
 DATA_PATH = Path(__file__).resolve().parent.parent / "telemetry.json"
 
-with open(DATA_PATH, "r", encoding="utf-8") as f:
-    telemetry = json.load(f)
+with open(DATA_PATH, "r", encoding="utf-8") as file:
+    telemetry = json.load(file)
 
 
+# Expected POST request body
 class MetricsRequest(BaseModel):
     regions: List[str]
     threshold_ms: float = 180
 
 
+# Calculate a percentile using linear interpolation
 def percentile(values, p):
     values = sorted(values)
 
@@ -45,18 +55,25 @@ def percentile(values, p):
     )
 
 
+# Health-check endpoints
 @app.get("/")
+@app.get("/api")
+@app.get("/api/index")
 def health():
     return {"status": "ok"}
 
 
+# Calculate metrics for the requested regions
 @app.post("/")
+@app.post("/api")
+@app.post("/api/index")
 def calculate_metrics(request: MetricsRequest):
     result = {}
 
     for region in request.regions:
         records = [
-            row for row in telemetry
+            row
+            for row in telemetry
             if row["region"].lower() == region.lower()
         ]
 
@@ -69,8 +86,15 @@ def calculate_metrics(request: MetricsRequest):
             }
             continue
 
-        latencies = [float(row["latency_ms"]) for row in records]
-        uptimes = [float(row["uptime_pct"]) for row in records]
+        latencies = [
+            float(row["latency_ms"])
+            for row in records
+        ]
+
+        uptimes = [
+            float(row["uptime_pct"])
+            for row in records
+        ]
 
         result[region] = {
             "avg_latency": sum(latencies) / len(latencies),
